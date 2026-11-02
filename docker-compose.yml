@@ -1,0 +1,49 @@
+name: searxng
+services:
+  searxng:
+    image: searxng/searxng:latest
+    container_name: searxng
+    env_file:
+      - .env
+    environment:
+      - SEARXNG_BASE_URL=http://127.0.0.1:8888
+    volumes:
+      - ./settings.yml:/etc/searxng/settings.yml:ro
+    ports:
+      - "127.0.0.1:8888:8080"
+    restart: "no"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8080/healthz')"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+  # Real (Xvfb-headed) Chrome behind an HTTP API: gets past bot checks that
+  # block SearXNG and plain fetches. Used by websearch.py for Brave + page reads.
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    ports:
+      - "127.0.0.1:8191:8191"
+    restart: "no"
+  # Free Cloudflare WARP exit (no account) as SOCKS5 on warp:1080, internal only.
+  # Google CSE (settings.yml) and Brave (websearch.py) go out through it, so their
+  # rate limits hit a Cloudflare IP instead of the home IP; Yandex/Bing stay direct.
+  warp:
+    image: caomingjun/warp:latest
+    container_name: warp
+    restart: "no"
+    device_cgroup_rules:
+      - 'c 10:200 rwm'
+    cap_add:
+      - MKNOD
+      - AUDIT_WRITE
+      - NET_ADMIN
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
+      - net.ipv4.conf.all.src_valid_mark=1
+    volumes:
+      - warp-data:/var/lib/cloudflare-warp  # keeps the WARP registration across restarts
+
+volumes:
+  warp-data:

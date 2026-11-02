@@ -1,0 +1,30 @@
+use_default_settings: true
+
+server:
+  bind_address: '127.0.0.1'
+  port: 8080
+
+search:
+  formats:
+    - html
+    - json
+
+redis:
+  host: null
+  port: null
+
+# Probed 2026-11-02 from this IP: these answer SearXNG with CAPTCHA / access
+# denied / rate limits, so they only add timeouts. Brave is still used, through
+# FlareSolverr's real browser (websearch.py). Re-test before re-enabling.
+engines:
+  - {name: google, disabled: true}
+  - {name: duckduckgo, disabled: true}
+  - {name: brave, disabled: true}
+  - {name: startpage, disabled: true}
+  - {name: qwant, disabled: true}
+  - {name: mojeek, disabled: true}
+  - {name: bing, disabled: false}
+  - {name: yandex, disabled: false}
+  # Through the WARP container (docker-compose.yml): Google flags the home IP for
+  # "unusual traffic" after a few dozen queries.
+  - {name: google cse, proxies: "socks5h://warp:1080"}
