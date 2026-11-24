@@ -28,4 +28,4 @@ done
 
 log "MCP server ready; serving until session ends."
 # Harnesses often launch MCP servers without ~/.local/bin (uv's default install dir) on PATH.
-exec "$(command -v uv || echo "$HOME/.local/bin/uv")" run --quiet --script websearch.py
+exec "$(command -v uv || echo "$HOME/.local/bin/uv")" run --quiet --script websearch.py "$@"

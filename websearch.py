@@ -54,8 +54,9 @@ def rerank(query: str, texts: list[str]) -> list[float]:
             from fastembed.rerank.cross_encoder import TextCrossEncoder
             # Not fastembed's default /tmp cache: that's tmpfs on many distros, so the 560MB model re-downloaded every boot.
             cache = os.environ.get("FASTEMBED_CACHE_PATH", os.path.expanduser("~/.cache/fastembed"))
-            _encoder = TextCrossEncoder(RERANKER, cache_dir=cache)
-        return list(_encoder.rerank(query, texts))
+            # Arena off: ONNX Runtime otherwise keeps each search's peak (~2GB) for the life of the process.
+            _encoder = TextCrossEncoder(RERANKER, cache_dir=cache, enable_cpu_mem_arena=False)
+        return list(_encoder.rerank(query, texts, batch_size=8))
 
 
 def strip_tags(s: str) -> str:
@@ -271,5 +272,8 @@ if __name__ == "__main__":
         assert "Attention" in web_read("https://arxiv.org/pdf/1706.03762", max_chars=3000)
         print("selfcheck ok")
         sys.exit()
+    if sys.argv[1:] == ["--http"]:  # one shared instance (systemd unit) for every harness instead of a copy per session
+        mcp.serve("127.0.0.1", 8890)
+        threading.Event().wait()
     print("websearch MCP: serving web_search and web_read over stdio", file=sys.stderr)
     asyncio.run(mcp.stdio_async())
